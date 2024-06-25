@@ -1,4 +1,5 @@
 import { TerminalLog } from "./TerminalLog/TerminalLog";
+import { TerminalStatus } from "./TerminalStatus";
 import { ApiProperty } from "@nestjs/swagger";
 import { spawn } from "child_process";
 
@@ -10,7 +11,16 @@ export class Terminal {
     logs: TerminalLog[];
 
     @ApiProperty({ type: String })
+    title: string;
+
+    @ApiProperty({ type: String })
     command: string;
+
+    @ApiProperty({
+        type: String,
+        enum: TerminalStatus
+    })
+    status: TerminalStatus;
 
     @ApiProperty({ type: Date })
     createdAt: Date;
@@ -20,15 +30,21 @@ export class Terminal {
 
     instanceSubProcess?: () => Promise<void>
 
+    kill?: () => Promise<void>
+
     public constructor(terminal?: Partial<Terminal>) {
         this.id = terminal?.id;
         this.logs = terminal?.logs;
+        this.title = terminal?.title;
         this.command = terminal?.command;
+        this.status = terminal?.status;
         this.createdAt = terminal?.createdAt;
         this.createdBy = terminal?.createdBy;
+
         this.instanceSubProcess = async () => {
-            console.log("start");
-            const cmd = spawn('powershell.exe', ['-Command', this.command]);
+            const cmd = spawn('powershell.exe', ['-Command', `cd $env:USERPROFILE; ${this.command}`]);
+            this.status = TerminalStatus.RUNNING;
+
             cmd.stdout.on('data', (data) => {
                 this.logs.push(new TerminalLog({
                     date: new Date(),
@@ -43,6 +59,8 @@ export class Terminal {
                     message: `[ERROR] ${data}`,
                     terminalId: this.id
                 }));
+                this.status = TerminalStatus.ERROR;
+                
             });
 
             cmd.on('error', (err) => {
@@ -51,11 +69,22 @@ export class Terminal {
                     message: `[ERROR] ${err.message}`,
                     terminalId: this.id
                 }));
+                this.status = TerminalStatus.ERROR;
             });
 
             cmd.on('close', (code) => {
-                console.log(`child process exited with code ${code}`);
+                if (!code) {
+                    this.status = TerminalStatus.FINISHED;
+                }
+                else {
+                    this.status = TerminalStatus.ERROR;
+                }
             });
+
+            this.kill = async () => {
+                cmd.kill('SIGKILL');
+                this.status = TerminalStatus.KILLED;
+            }
         }
         this.instanceSubProcess();
     }

@@ -48,6 +48,7 @@ export class TerminalRepository implements TerminalRepositoryInterface {
     public async remove(
         terminal: Terminal
     ): Promise<Terminal> {
+        terminal?.kill && terminal.kill();
         const index = this.db.indexOf(terminal);
         const record = this.db.splice(index, 1);
         return record[0];

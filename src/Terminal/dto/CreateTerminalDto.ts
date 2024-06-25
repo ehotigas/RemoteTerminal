@@ -5,5 +5,8 @@ export class CreateTerminalDto {
     command: string;
 
     @ApiProperty({ type: String })
+    title: string;
+
+    @ApiProperty({ type: String })
     createdBy: string;
 }

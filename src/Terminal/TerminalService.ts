@@ -3,6 +3,7 @@ import { CreateTerminalDto } from "./dto/CreateTerminalDto";
 import { GetTerminalDto } from "./dto/GetTerminalDto";
 import { RequestError } from "src/types/RequestError";
 import { ProviderToken } from "src/ProviderToken";
+import { TerminalStatus } from "./TerminalStatus";
 import { Terminal } from "./Terminal";
 import {
     Inject,
@@ -41,7 +42,8 @@ export class TerminalService implements TerminalServiceInterface {
         return await this.adapter.save({
             ...input,
             createdAt: new Date,
-            logs: []
+            logs: [],
+            status: TerminalStatus.NEW
         });
     }
 
