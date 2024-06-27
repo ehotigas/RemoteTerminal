@@ -1,7 +1,7 @@
 import { TerminalLog } from "./TerminalLog/TerminalLog";
 import { TerminalStatus } from "./TerminalStatus";
 import { ApiProperty } from "@nestjs/swagger";
-import { spawn } from "child_process";
+import { exec, spawn } from "child_process";
 
 export class Terminal {
     @ApiProperty({ type: Number })
@@ -42,7 +42,10 @@ export class Terminal {
         this.createdBy = terminal?.createdBy;
 
         this.instanceSubProcess = async () => {
-            const cmd = spawn('powershell.exe', ['-Command', `cd $env:USERPROFILE; ${this.command}`]);
+            const cmd = spawn(
+                'powershell.exe',
+                ['-Command', `cd $env:USERPROFILE; ${this.command}`]
+            );
             this.status = TerminalStatus.RUNNING;
 
             cmd.stdout.on('data', (data) => {
@@ -82,7 +85,13 @@ export class Terminal {
             });
 
             this.kill = async () => {
-                cmd.kill('SIGKILL');
+                try {
+                    exec(`taskkill -PID ${cmd.pid} -T -F`);
+                }
+                catch(error) {
+                    console.error(error);
+                }
+                
                 this.status = TerminalStatus.KILLED;
             }
         }
